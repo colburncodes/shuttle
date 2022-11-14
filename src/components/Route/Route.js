@@ -1,36 +1,23 @@
-import { useEffect, useState } from "react";
 import { Circles } from "react-loader-spinner";
+import { useQuery } from "react-query";
 
 function Route() {
-  const [error, setError] = useState(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [routes, setRoutes] = useState([]);
+  async function fetchRoutes() {
+    const BASE_URL = "https://transit.land/api/v2/rest/routes";
+    const API_KEY = "";
+    const oneStopID = "	r-9yzu-4?";
 
-  useEffect(() => {
-    fetch(
-      `${process.env.BASE_URL}/${process.env.oneStopID}apikey=${process.env.API_KEY}`
-    )
-      .then((res) => {
-        return res.json();
-      })
-      .then(
-        (items) => {
-          console.log(items);
-          setIsLoaded(true);
-          setRoutes(items);
-        },
-        (error) => {
-          setIsLoaded(true);
-          setError(error);
-        }
-      );
-  }, []);
+    const response = await fetch(`${BASE_URL}/${oneStopID}apikey=${API_KEY}`);
+    const data = await response.json();
+    const routes = await data.routes;
+    return routes;
+  }
 
-  if (error) {
-    return <div>Error: {error.message}</div>;
-  } else if (!isLoaded) {
+  const { data, isLoading, isError } = useQuery("routes", fetchRoutes);
+
+  if (isLoading) {
     return (
-      <div>
+      <>
         <Circles
           height="80"
           width="80"
@@ -40,21 +27,20 @@ function Route() {
           wrapperClass=""
           visible={true}
         />
-      </div>
+      </>
     );
-  } else {
-    if (!routes.length) {
-      return <div>No data</div>;
-    } else {
-      return (
-        <ul>
-          {(routes ?? []).map((route) => (
-            <li key={route.id}>{route[0].route_long_name}</li>
-          ))}
-        </ul>
-      );
-    }
   }
+  if (isError) return <h3>Error: No Routes Fetched!</h3>;
+
+  return (
+    <>
+      <ul>
+        {data?.map((route) => (
+          <li key={route.id}>{route.agency.agency_name}</li>
+        ))}
+      </ul>
+    </>
+  );
 }
 
 export default Route;
